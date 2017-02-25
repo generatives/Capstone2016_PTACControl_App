@@ -5,7 +5,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROGRAM.Texas Instruments XDS110 USB Debug Probe/Cortex_M3_0" value="${build_artifact:multi_role_cc2650lp_app}"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.Texas Instruments XDS110 USB Debug Probe/Cortex_M3_0" value="multi_role_cc2650lp_app"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:multi_role_cc2650lp_app}"/>
-<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.Texas Instruments XDS110 USB Debug Probe/Cortex_M3_0" value="C:/Development\Capstone\CCS_Workspace\multi_role_cc2650lp_app\FlashROM\multi_role_cc2650lp_app.out"/>
+<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.Texas Instruments XDS110 USB Debug Probe/Cortex_M3_0" value="C:/Users\jason\Documents\ubc\year 5\capstone\Capstone2016_PTACControl_App\FlashROM\multi_role_cc2650lp_app.out"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/multi_role_cc2650lp_app"/>
 </listAttribute>
