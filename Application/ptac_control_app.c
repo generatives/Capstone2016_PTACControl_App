@@ -195,6 +195,12 @@ typedef struct
   uint16 connectionHandle;
 } discInfo_t;
 
+typedef struct
+{
+    uint8_t *peeraddr;
+    uint8_t addrtype;
+} linkEstablishmentInfo;
+
 /*********************************************************************
 * GLOBAL VARIABLES
 */
@@ -278,6 +284,8 @@ static uint8_t rspTxRetry = 0;
 
 // Discovered thermometer info
 static discInfo_t thermometerDiscInfo;
+// Info for the link to be requested after scanning finishes
+static linkEstablishmentInfo linkToMake;
 
 // Maximim PDU size (default = 27 octets)
 static uint16 maxPduSize;
@@ -507,6 +515,7 @@ static void multi_role_init(void)
     thermometerDiscInfo.discState = BLE_DISC_STATE_IDLE;
     thermometerDiscInfo.svcEndHdl = 0;
     thermometerDiscInfo.svcStartHdl = 0;
+    thermometerDiscInfo.connectionHandle = INVALID_CONNHANDLE;
   }
 
   //GATT
@@ -767,10 +776,12 @@ static uint8_t multi_role_processGATTMsg(gattMsgEvent_t *pMsg)
   {
     // MTU size updated
   }
+  uint8 numActive = linkDB_NumActive();
+  Display_print1(dispHandle, 0, 0, "FC Violated: %d", numActive);
   //messages from GATT server
-  if (linkDB_NumActive() > 0)
+  if (numActive > 0)
   {
-    if ((pMsg->method == ATT_READ_RSP)   ||
+    if ((pMsg->method == ATT_READ_RSP) ||
         ((pMsg->method == ATT_ERROR_RSP) &&
          (pMsg->msg.errorRsp.reqOpcode == ATT_READ_REQ)))
     {
@@ -781,9 +792,9 @@ static uint8_t multi_role_processGATTMsg(gattMsgEvent_t *pMsg)
       else
       {
           //Successful read
+
           UpdatePTAC(pMsg->msg.readRsp.pValue[0]);
       }
-
     }
     else if ((pMsg->method == ATT_WRITE_RSP)  ||
              ((pMsg->method == ATT_ERROR_RSP) &&
@@ -1005,15 +1016,12 @@ static void multi_role_processRoleEvent(gapMultiRoleEvent_t *pEvent)
     {
         //if the thermometer profile was found
 
-        uint8_t *pName = "Thermometer";
-        uint8_t nameLength = 11;
+        uint8_t *pName = "CC2650 SensorTag";
+        uint8_t nameLength = 9;
         if (multi_role_findLocalName(pName, nameLength, pEvent->deviceInfo.pEvtData, pEvent->deviceInfo.dataLen))
         {
-            uint8_t *peeraddr = pEvent->deviceInfo.addr;
-            uint8_t addrtype = pEvent->deviceInfo.addrType;
-            GAPRole_EstablishLink(DEFAULT_LINK_HIGH_DUTY_CYCLE,
-                                  DEFAULT_LINK_WHITE_LIST,
-                                  addrtype, peeraddr);
+            linkToMake.peeraddr = pEvent->deviceInfo.addr;
+            linkToMake.addrtype = pEvent->deviceInfo.addrType;
         }
     }
     break;
@@ -1024,7 +1032,14 @@ static void multi_role_processRoleEvent(gapMultiRoleEvent_t *pEvent)
       // discovery complete
       scanningStarted = FALSE;
 
-      if(thermometerDiscInfo.connectionHandle == INVALID_CONNHANDLE)
+      if(linkToMake.peeraddr != 0)
+      {
+          bStatus_t success = GAPRole_EstablishLink(DEFAULT_LINK_HIGH_DUTY_CYCLE,
+                                DEFAULT_LINK_WHITE_LIST,
+                                linkToMake.addrtype, linkToMake.peeraddr);
+          Display_print1(dispHandle, 0, 0, "Param Update %d", success);
+      }
+      else if(thermometerDiscInfo.connectionHandle == INVALID_CONNHANDLE)
       {
           //Start discovery
           GAPRole_StartDiscovery(DEFAULT_DISCOVERY_MODE, DEFAULT_DISCOVERY_ACTIVE_SCAN, DEFAULT_DISCOVERY_WHITE_LIST);
@@ -1036,7 +1051,7 @@ static void multi_role_processRoleEvent(gapMultiRoleEvent_t *pEvent)
     // connection has been established
   case GAP_LINK_ESTABLISHED_EVENT:
     {
-      // if succesfully established
+      // if successfully established
       if (pEvent->gap.hdr.status == SUCCESS)
       {
         //update connecting state
@@ -1255,14 +1270,16 @@ static void multi_role_startThermometerDiscovery(uint16_t connHandle)
   //update discovery state of this connection
   thermometerDiscInfo.discState= BLE_DISC_STATE_MTU;
   // Initialize cached handles
-  thermometerDiscInfo.svcStartHdl = thermometerDiscInfo.svcEndHdl = 0;
+  thermometerDiscInfo.svcStartHdl = thermometerDiscInfo.svcEndHdl = thermometerDiscInfo.charHdl = 0;
+  thermometerDiscInfo.connectionHandle = connHandle;
 
   // Discover GATT Server's Rx MTU size
   req.clientRxMTU = maxPduSize - L2CAP_HDR_SIZE;
 
   // ATT MTU size should be set to the minimum of the Client Rx MTU
   // and Server Rx MTU values
-  VOID GATT_ExchangeMTU(connHandle, &req, selfEntity);
+  bStatus_t status = GATT_ExchangeMTU(connHandle, &req, selfEntity);
+  Display_print1(dispHandle, 0, 0, "Param Update %d", status);
 }
 
 /*********************************************************************
@@ -1287,8 +1304,8 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
       // MTU size response received, discover simple BLE service
       if (pMsg->method == ATT_EXCHANGE_MTU_RSP)
       {
-        uint8_t uuid[ATT_BT_UUID_SIZE] = { LO_UINT16(THERMOMETERPROFILE_SERV_UUID),
-        HI_UINT16(THERMOMETERPROFILE_SERV_UUID) };
+        uint8_t uuid[ATT_BT_UUID_SIZE] = { LO_UINT16(IRTEMPERATURE_SERV_UUID),
+        HI_UINT16(IRTEMPERATURE_SERV_UUID) };
         //advanec state
         thermometerDiscInfo.discState= BLE_DISC_STATE_SVC;
 
@@ -1323,8 +1340,8 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
           req.startHandle = thermometerDiscInfo.svcStartHdl;
           req.endHandle = thermometerDiscInfo.svcEndHdl;
           req.type.len = ATT_BT_UUID_SIZE;
-          req.type.uuid[0] = LO_UINT16(THERMOMETERPROFILE_CHAR1_UUID);
-          req.type.uuid[1] = HI_UINT16(THERMOMETERPROFILE_CHAR1_UUID);
+          req.type.uuid[0] = LO_UINT16(IRTEMPERATURE_DATA_UUID);
+          req.type.uuid[1] = HI_UINT16(IRTEMPERATURE_DATA_UUID);
 
           //send characteristic discovery request
           VOID GATT_ReadUsingCharUUID(pMsg->connHandle, &req, selfEntity);
