@@ -61,6 +61,14 @@ extern "C"
 /*********************************************************************
  * CONSTANTS
  */
+// Service UUID
+#define IRTEMPERATURE_SERV_UUID         0xAA00
+#define IRTEMPERATURE_DATA_UUID         0xAA01
+#define IRTEMPERATURE_CONFIG_UUID         0xAA02
+#define IRTEMPERATURE_PERIOD_UUID         0xAA03
+
+// Length of sensor data in bytes
+#define IRTEMPERATURE_DATA_LEN          4
 
 // Service UUID
 #define IRTEMPERATURE_SERV_UUID         0xAA00
