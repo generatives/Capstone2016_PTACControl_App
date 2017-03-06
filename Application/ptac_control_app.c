@@ -41,7 +41,6 @@
 /*********************************************************************
 * INCLUDES
 */
-#include "../Application/ptac_control_app.h"
 
 #include <string.h>
 
@@ -54,12 +53,13 @@
 #include "hci_tl.h"
 #include "linkdb.h"
 #include "gatt.h"
-#include "att.h"
 #include "gapgattserver.h"
 #include "gattservapp.h"
 #include "devinfoservice.h"
 #include "../PROFILES/PTAC_control_profile.h"
 #include "../PROFILES/thermometer_profile.h"
+#include "PTAC_control.h"
+
 #include "multi.h"
 #include "gapbondmgr.h"
 
@@ -71,12 +71,13 @@
 #include <ti/mw/display/Display.h>
 #include "board.h"
 
+#include "ptac_control_app.h"
+
 #include <ti/mw/lcd/LCDDogm1286.h>
-#include "../Application/ptac_control.h"
 
 
-#define TI_UUID_SIZE        ATT_UUID_SIZE
-#define TI_UUID(uuid)       TI_BASE_UUID_128(uuid)
+//#define TI_UUID_SIZE        ATT_UUID_SIZE
+//#define TI_UUID(uuid)       TI_BASE_UUID_128(uuid)
 
 /*********************************************************************
 * CONSTANTS
@@ -434,7 +435,7 @@ static void multi_role_init(void)
   //init keys and LCD
   Board_initKeys(multi_role_keyChangeHandler);
   // Open Display.
-  //dispHandle = Display_open(SBC_DISPLAY_TYPE, NULL);
+  dispHandle = Display_open(SBC_DISPLAY_TYPE, NULL);
 
   // Setup the GAP
   {
@@ -786,7 +787,7 @@ static uint8_t multi_role_processGATTMsg(gattMsgEvent_t *pMsg)
     // MTU size updated
   }
   uint8 numActive = linkDB_NumActive();
-  //Display_print1(dispHandle, 0, 0, "FC Violated: %d", numActive);
+  Display_print1(dispHandle, 0, 0, "FC Violated: %d", numActive);
   //messages from GATT server
   if (numActive > 0)
   {
@@ -1046,7 +1047,7 @@ static void multi_role_processRoleEvent(gapMultiRoleEvent_t *pEvent)
           bStatus_t success = GAPRole_EstablishLink(DEFAULT_LINK_HIGH_DUTY_CYCLE,
                                 DEFAULT_LINK_WHITE_LIST,
                                 linkToMake.addrtype, linkToMake.peeraddr);
-          //Display_print1(dispHandle, 0, 0, "Param Update %d", success);
+          Display_print1(dispHandle, 0, 0, "Param Update %d", success);
       }
       else if(thermometerDiscInfo.connectionHandle == INVALID_CONNHANDLE)
       {
@@ -1294,7 +1295,7 @@ static void multi_role_startThermometerDiscovery(uint16_t connHandle)
   // ATT MTU size should be set to the minimum of the Client Rx MTU
   // and Server Rx MTU values
   bStatus_t status = GATT_ExchangeMTU(connHandle, &req, selfEntity);
-  //Display_print1(dispHandle, 0, 0, "Param Update %d", status);
+  Display_print1(dispHandle, 0, 0, "Param Update %d", status);
 }
 
 /*********************************************************************
@@ -1321,15 +1322,15 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
       {
 //        uint8_t uuid[ATT_BT_UUID_SIZE] = { LO_UINT16(IRTEMPERATURE_SERV_UUID),
 //        HI_UINT16(IRTEMPERATURE_SERV_UUID) };
-        uint8_t irSensorServiceUUID[TI_UUID_SIZE] =
+        uint8_t irSensorServiceUUID[ATT_UUID_SIZE] =
         {
-          TI_UUID(IRTEMPERATURE_SERV_UUID),
+          //TI_UUID(IRTEMPERATURE_SERV_UUID),
         };
         //advanec state
         thermometerDiscInfo.discState= BLE_DISC_STATE_SVC;
 
         // Discovery thermometer service
-        VOID GATT_DiscPrimaryServiceByUUID(pMsg->connHandle, irSensorServiceUUID, TI_UUID_SIZE,
+        VOID GATT_DiscPrimaryServiceByUUID(pMsg->connHandle, irSensorServiceUUID, ATT_UUID_SIZE,
                                            selfEntity);
       }
     }
@@ -1358,13 +1359,13 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
           thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_DATA;
           req.startHandle = thermometerDiscInfo.svcStartHdl;
           req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = TI_UUID_SIZE;
-          uint8_t irSensorDataUUID[TI_UUID_SIZE] =
+          req.type.len = ATT_UUID_SIZE;
+          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
           {
-            TI_UUID(IRTEMPERATURE_DATA_UUID),
+            //TI_UUID(IRTEMPERATURE_DATA_UUID),
           };
 
-          for(int i = 0; i < TI_UUID_SIZE; i++)
+          for(int i = 0; i < ATT_UUID_SIZE; i++)
           {
               req.type.uuid[i] = irSensorDataUUID[i];
           }
@@ -1390,13 +1391,13 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
           thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_CONFIG;
           req.startHandle = thermometerDiscInfo.svcStartHdl;
           req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = TI_UUID_SIZE;
-          uint8_t irSensorDataUUID[TI_UUID_SIZE] =
+          req.type.len = ATT_UUID_SIZE;
+          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
           {
-            TI_UUID(IRTEMPERATURE_CONFIG_UUID),
+            //TI_UUID(IRTEMPERATURE_CONF_UUID),
           };
 
-          for(int i = 0; i < TI_UUID_SIZE; i++)
+          for(int i = 0; i < ATT_UUID_SIZE; i++)
           {
               req.type.uuid[i] = irSensorDataUUID[i];
           }
@@ -1421,13 +1422,13 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
           thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_PERIOD;
           req.startHandle = thermometerDiscInfo.svcStartHdl;
           req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = TI_UUID_SIZE;
-          uint8_t irSensorDataUUID[TI_UUID_SIZE] =
+          req.type.len = ATT_UUID_SIZE;
+          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
           {
-            TI_UUID(IRTEMPERATURE_PERIOD_UUID),
+            //TI_UUID(IRTEMPERATURE_PERI_UUID),
           };
 
-          for(int i = 0; i < TI_UUID_SIZE; i++)
+          for(int i = 0; i < ATT_UUID_SIZE; i++)
           {
               req.type.uuid[i] = irSensorDataUUID[i];
           }
