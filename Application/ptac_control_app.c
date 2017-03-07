@@ -41,7 +41,6 @@
 /*********************************************************************
 * INCLUDES
 */
-
 #include <string.h>
 
 #include <ti/sysbios/knl/Task.h>
@@ -74,10 +73,6 @@
 #include "ptac_control_app.h"
 
 #include <ti/mw/lcd/LCDDogm1286.h>
-
-
-//#define TI_UUID_SIZE        ATT_UUID_SIZE
-//#define TI_UUID(uuid)       TI_BASE_UUID_128(uuid)
 
 /*********************************************************************
 * CONSTANTS
@@ -168,9 +163,10 @@ typedef enum {
   BLE_DISC_STATE_IDLE,                // Idle
   BLE_DISC_STATE_MTU,                 // Exchange ATT MTU size
   BLE_DISC_STATE_SVC,                 // Service discovery
-  BLE_CHAR_DISC_STATE_CONFIG,         // Discover config
-  BLE_CHAR_DISC_STATE_DATA,           // Discover data
-  BLE_CHAR_DISC_STATE_PERIOD,         // Discover period
+  BLE_DISC_STATE_CHAR,
+  //BLE_DISC_STATE_DATA_CHAR,           // Characteristic discovery
+  //BLE_DISC_STATE_CONFIG_CHAR,         // Characteristic discovery
+  //BLE_DISC_STATE_PERIOD_CHAR          // Characteristic discovery
 } discState_t;
 
 /*********************************************************************
@@ -198,9 +194,10 @@ typedef struct
   discState_t discState;   //discovery state
   uint16_t svcStartHdl;    //service start handle
   uint16_t svcEndHdl;      //service end handle
-  uint16_t dataCharHdl;    //data characteristic handle
-  uint16_t configCharHdl;  //data characteristic handle
-  uint16_t periodCharHdl;  //data characteristic handle
+  uint16_t charHdl;        //characteristic handle
+  //uint16_t dataCharHdl;    //characteristic handle
+  //uint16_t configCharHdl;  //characteristic handle
+  //uint16_t periodCharHdl;  //characteristic handle
   uint16 connectionHandle;
 } discInfo_t;
 
@@ -353,8 +350,9 @@ static void multi_role_pairStateCB(uint16_t connHandle, uint8_t state,
                                    uint8_t status);
 static void PTACControlApp_clockHandler(UArg arg);
 static void PTACControlApp_performPeriodicTask(void);
-static void PTACControl_initializeTemperatureSensor();
-static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value);
+//static void PTACControl_initializeTemperatureSensor();
+//static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value);
+//static void readTICharacteristic(uint16 connHandle,uint16 uuid);
 
 /*********************************************************************
 * PROFILE CALLBACKS
@@ -522,6 +520,7 @@ static void multi_role_init(void)
     // Start the GAPRole and negotiate max number of connections
     VOID GAPRole_StartDevice(&multi_role_gapRoleCBs, &maxNumBleConns);
 
+    thermometerDiscInfo.charHdl = 0;
     thermometerDiscInfo.discState = BLE_DISC_STATE_IDLE;
     thermometerDiscInfo.svcEndHdl = 0;
     thermometerDiscInfo.svcStartHdl = 0;
@@ -1093,9 +1092,10 @@ static void multi_role_processRoleEvent(gapMultiRoleEvent_t *pEvent)
         if(thermometerDiscInfo.connectionHandle == pEvent->linkTerminate.connectionHandle)
         {
             //Reset discovery info
-            thermometerDiscInfo.configCharHdl = 0;
-            thermometerDiscInfo.dataCharHdl = 0;
-            thermometerDiscInfo.periodCharHdl = 0;
+//            thermometerDiscInfo.dataCharHdl = 0;
+//            thermometerDiscInfo.configCharHdl = 0;
+//            thermometerDiscInfo.periodCharHdl = 0;
+			thermometerDiscInfo.charHdl = 0;
             thermometerDiscInfo.connectionHandle = INVALID_CONNHANDLE;
             //reset discovery state
             thermometerDiscInfo.discState= BLE_DISC_STATE_IDLE;
@@ -1284,9 +1284,10 @@ static void multi_role_startThermometerDiscovery(uint16_t connHandle)
   // Initialize cached handles
   thermometerDiscInfo.svcStartHdl = 0;
   thermometerDiscInfo.svcEndHdl = 0;
-  thermometerDiscInfo.configCharHdl = 0;
-  thermometerDiscInfo.dataCharHdl = 0;
-  thermometerDiscInfo.periodCharHdl = 0;
+  thermometerDiscInfo.charHdl = 0;
+//  thermometerDiscInfo.dataCharHdl = 0;
+//  thermometerDiscInfo.configCharHdl = 0;
+//  thermometerDiscInfo.periodCharHdl = 0;
   thermometerDiscInfo.connectionHandle = connHandle;
 
   // Discover GATT Server's Rx MTU size
@@ -1320,139 +1321,113 @@ static void multi_role_processGATTDiscEvent(gattMsgEvent_t *pMsg)
       // MTU size response received, discover simple BLE service
       if (pMsg->method == ATT_EXCHANGE_MTU_RSP)
       {
-//        uint8_t uuid[ATT_BT_UUID_SIZE] = { LO_UINT16(IRTEMPERATURE_SERV_UUID),
-//        HI_UINT16(IRTEMPERATURE_SERV_UUID) };
-        uint8_t irSensorServiceUUID[ATT_UUID_SIZE] =
+        uint8_t uuid[ATT_UUID_SIZE] =
         {
-          //TI_UUID(IRTEMPERATURE_SERV_UUID),
+         TI_BASE_UUID_128(IRTEMPERATURE_SERV_UUID)
         };
-        //advanec state
+        //advance state
         thermometerDiscInfo.discState= BLE_DISC_STATE_SVC;
 
         // Discovery thermometer service
-        VOID GATT_DiscPrimaryServiceByUUID(pMsg->connHandle, irSensorServiceUUID, ATT_UUID_SIZE,
+        VOID GATT_DiscPrimaryServiceByUUID(pMsg->connHandle, uuid, ATT_BT_UUID_SIZE,
                                            selfEntity);
       }
     }
     //if we're performing service discovery
-    else if (thermometerDiscInfo.discState== BLE_DISC_STATE_SVC)
-    {
-      // Service found, store handles
-      if (pMsg->method == ATT_FIND_BY_TYPE_VALUE_RSP &&
-          pMsg->msg.findByTypeValueRsp.numInfo > 0)
-      {
-          thermometerDiscInfo.svcStartHdl = ATT_ATTR_HANDLE(pMsg->msg.findByTypeValueRsp.pHandlesInfo, 0);
-          thermometerDiscInfo.svcEndHdl = ATT_GRP_END_HANDLE(pMsg->msg.findByTypeValueRsp.pHandlesInfo, 0);
-      }
-
-      // If procedure complete
-      if (((pMsg->method == ATT_FIND_BY_TYPE_VALUE_RSP) &&
-           (pMsg->hdr.status == bleProcedureComplete))  ||
-          (pMsg->method == ATT_ERROR_RSP))
-      {
-        //if we've discovered the service
-        if (thermometerDiscInfo.svcStartHdl != 0)
-        {
-          attReadByTypeReq_t req;
-
-          // Discover characteristic
-          thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_DATA;
-          req.startHandle = thermometerDiscInfo.svcStartHdl;
-          req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = ATT_UUID_SIZE;
-          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
-          {
-            //TI_UUID(IRTEMPERATURE_DATA_UUID),
-          };
-
-          for(int i = 0; i < ATT_UUID_SIZE; i++)
-          {
-              req.type.uuid[i] = irSensorDataUUID[i];
-          }
-
-          //send characteristic discovery request
-          VOID GATT_ReadUsingCharUUID(pMsg->connHandle, &req, selfEntity);
-        }
-      }
-    }
-    //if we're discovering characteristics
-    else if (thermometerDiscInfo.discState == BLE_CHAR_DISC_STATE_DATA)
-    {
-      // Characteristic found
-      if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
-          (pMsg->msg.readByTypeRsp.numPairs > 0))
-      {
-          thermometerDiscInfo.dataCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
-                                                   pMsg->msg.readByTypeRsp.pDataList[1]);
-
-          attReadByTypeReq_t req;
-
-          // Discover characteristic
-          thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_CONFIG;
-          req.startHandle = thermometerDiscInfo.svcStartHdl;
-          req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = ATT_UUID_SIZE;
-          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
-          {
-            //TI_UUID(IRTEMPERATURE_CONF_UUID),
-          };
-
-          for(int i = 0; i < ATT_UUID_SIZE; i++)
-          {
-              req.type.uuid[i] = irSensorDataUUID[i];
-          }
-
-          //send characteristic discovery request
-          VOID GATT_ReadUsingCharUUID(pMsg->connHandle, &req, selfEntity);
-      }
-    }
-    //if we're discovering characteristics
-    else if (thermometerDiscInfo.discState == BLE_CHAR_DISC_STATE_CONFIG)
-    {
-      // Characteristic found
-      if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
-          (pMsg->msg.readByTypeRsp.numPairs > 0))
-      {
-          thermometerDiscInfo.configCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
-                                                   pMsg->msg.readByTypeRsp.pDataList[1]);
-
-          attReadByTypeReq_t req;
-
-          // Discover characteristic
-          thermometerDiscInfo.discState = BLE_CHAR_DISC_STATE_PERIOD;
-          req.startHandle = thermometerDiscInfo.svcStartHdl;
-          req.endHandle = thermometerDiscInfo.svcEndHdl;
-          req.type.len = ATT_UUID_SIZE;
-          uint8_t irSensorDataUUID[ATT_UUID_SIZE] =
-          {
-            //TI_UUID(IRTEMPERATURE_PERI_UUID),
-          };
-
-          for(int i = 0; i < ATT_UUID_SIZE; i++)
-          {
-              req.type.uuid[i] = irSensorDataUUID[i];
-          }
-
-          //send characteristic discovery request
-          VOID GATT_ReadUsingCharUUID(pMsg->connHandle, &req, selfEntity);
-      }
-    }
-  }
-  //if we're discovering characteristics
-  else if (thermometerDiscInfo.discState == BLE_CHAR_DISC_STATE_PERIOD)
-  {
-    // Characteristic found
-    if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
-        (pMsg->msg.readByTypeRsp.numPairs > 0))
-    {
-        thermometerDiscInfo.periodCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
-                                                 pMsg->msg.readByTypeRsp.pDataList[1]);
-        thermometerDiscInfo.discState = BLE_DISC_STATE_IDLE;
-
-        PTACControl_initializeTemperatureSensor();
-    }
+//    else if (thermometerDiscInfo.discState== BLE_DISC_STATE_SVC)
+//    {
+//      // Service found, store handles
+//      if (pMsg->method == ATT_FIND_BY_TYPE_VALUE_RSP &&
+//          pMsg->msg.findByTypeValueRsp.numInfo > 0)
+//      {
+//          thermometerDiscInfo.svcStartHdl = ATT_ATTR_HANDLE(pMsg->msg.findByTypeValueRsp.pHandlesInfo, 0);
+//          thermometerDiscInfo.svcEndHdl = ATT_GRP_END_HANDLE(pMsg->msg.findByTypeValueRsp.pHandlesInfo, 0);
+//      }
+//
+//      // If procedure complete
+//      if (((pMsg->method == ATT_FIND_BY_TYPE_VALUE_RSP) &&
+//           (pMsg->hdr.status == bleProcedureComplete))  ||
+//          (pMsg->method == ATT_ERROR_RSP))
+//      {
+//        //if we've discovered the service
+//        if (thermometerDiscInfo.svcStartHdl != 0)
+//        {
+//            thermometerDiscInfo.discState = BLE_DISC_STATE_DATA_CHAR;
+//            readTICharacteristic(pMsg->connHandle, IRTEMPERATURE_DATA_UUID);
+//        }
+//      }
+//    }
+//    //if we're discovering characteristics
+//    else if (thermometerDiscInfo.discState == BLE_DISC_STATE_DATA_CHAR)
+//    {
+//      // Characteristic found
+//      if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
+//          (pMsg->msg.readByTypeRsp.numPairs > 0))
+//      {
+//        //store handle
+//          thermometerDiscInfo.dataCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
+//                                                   pMsg->msg.readByTypeRsp.pDataList[1]);
+//
+//          thermometerDiscInfo.discState = BLE_DISC_STATE_CONFIG_CHAR;
+//          readTICharacteristic(pMsg->connHandle, IRTEMPERATURE_CONF_UUID);
+//
+//        //Display_print0(dispHandle, 0, 0, "Simple Svc Found");
+//      }
+//    }
+//    //if we're discovering characteristics
+//    else if (thermometerDiscInfo.discState == BLE_DISC_STATE_CONFIG_CHAR)
+//    {
+//      // Characteristic found
+//      if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
+//          (pMsg->msg.readByTypeRsp.numPairs > 0))
+//      {
+//        //store handle
+//          thermometerDiscInfo.configCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
+//                                                   pMsg->msg.readByTypeRsp.pDataList[1]);
+//
+//          thermometerDiscInfo.discState = BLE_DISC_STATE_PERIOD_CHAR;
+//          readTICharacteristic(pMsg->connHandle, IRTEMPERATURE_PERI_UUID);
+//
+//        //Display_print0(dispHandle, 0, 0, "Simple Svc Found");
+//      }
+//    }
+//    //if we're discovering characteristics
+//    else if (thermometerDiscInfo.discState == BLE_DISC_STATE_PERIOD_CHAR)
+//    {
+//      // Characteristic found
+//      if ((pMsg->method == ATT_READ_BY_TYPE_RSP) &&
+//          (pMsg->msg.readByTypeRsp.numPairs > 0))
+//      {
+//        //store handle
+//          thermometerDiscInfo.periodCharHdl = BUILD_UINT16(pMsg->msg.readByTypeRsp.pDataList[0],
+//                                                   pMsg->msg.readByTypeRsp.pDataList[1]);
+//
+//        //Display_print0(dispHandle, 0, 0, "Simple Svc Found");
+//      }
+//    }
   }
 }
+
+//static void readTICharacteristic(uint16 connHandle,uint16 uuid)
+//{
+//    attReadByTypeReq_t req;
+//    req.startHandle = thermometerDiscInfo.svcStartHdl;
+//    req.endHandle = thermometerDiscInfo.svcEndHdl;
+//    req.type.len = ATT_UUID_SIZE;
+//
+//    uint8_t tiUUID[ATT_UUID_SIZE] =
+//    {
+//     TI_BASE_UUID_128(uuid)
+//    };
+//
+//    for(int i = 0; i < ATT_UUID_SIZE; i++)
+//    {
+//        req.type.uuid[i] = tiUUID[i];
+//    }
+//
+//    //send characteristic discovery request
+//    VOID GATT_ReadUsingCharUUID(connHandle, &req, selfEntity);
+//}
 
 /*********************************************************************
 * @fn      multi_role_findLocalName
@@ -1714,46 +1689,45 @@ static void PTACControlApp_performPeriodicTask(void)
     attReadReq_t req;
 
     // fill up read request
-    req.handle = thermometerDiscInfo.dataCharHdl;
+    req.handle = thermometerDiscInfo.charHdl;
 
     //send read request. no need to free if unsuccesful since the request
     //is only placed in CSTACK; not allocated
     GATT_ReadCharValue(thermometerDiscInfo.connectionHandle, &req, selfEntity);
 }
 
-static void PTACControl_initializeTemperatureSensor()
-{
-    WriteChar(thermometerDiscInfo.connectionHandle, thermometerDiscInfo.configCharHdl, 0x01);
-}
-
-static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value)
-{
-    // Do a write
-    attWriteReq_t req;
-
-    //allocate GATT write request
-    req.pValue = GATT_bm_alloc(connectionHandle, ATT_WRITE_REQ, 1, NULL);
-    // if succesfully allocated
-    if ( req.pValue != NULL )
-    {
-      //fill up request
-      req.handle = charHandle;
-      req.len = 1;
-      req.pValue[0] = value;
-      req.sig = 0;
-      req.cmd = 0;
-
-      //send GATT write to controller
-      bStatus_t status = GATT_WriteCharValue(connectionHandle, &req, selfEntity);
-      //if not sucessfully sent
-      if ( status != SUCCESS )
-      {
-        //free write request as the controller will not
-        GATT_bm_free((gattMsg_t *)&req, ATT_WRITE_REQ);
-      }
-    }
-}
-
+//static void PTACControl_initializeTemperatureSensor()
+//{
+//    //WriteChar(thermometerDiscInfo.connectionHandle, thermometerDiscInfo.configCharHdl, 0x01);
+//}
+//
+//static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value)
+//{
+//    // Do a write
+//    attWriteReq_t req;
+//
+//    //allocate GATT write request
+//    req.pValue = GATT_bm_alloc(connectionHandle, ATT_WRITE_REQ, 1, NULL);
+//    // if succesfully allocated
+//    if ( req.pValue != NULL )
+//    {
+//      //fill up request
+//      req.handle = charHandle;
+//      req.len = 1;
+//      req.pValue[0] = value;
+//      req.sig = 0;
+//      req.cmd = 0;
+//
+//      //send GATT write to controller
+//      bStatus_t status = GATT_WriteCharValue(connectionHandle, &req, selfEntity);
+//      //if not sucessfully sent
+//      if ( status != SUCCESS )
+//      {
+//        //free write request as the controller will not
+//        GATT_bm_free((gattMsg_t *)&req, ATT_WRITE_REQ);
+//      }
+//    }
+//}
 
 ////use dummy params statically allocated but fill in connection handle
 //updateParams.connHandle = connHandleMap[connIdx];

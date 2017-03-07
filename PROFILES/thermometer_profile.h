@@ -61,6 +61,7 @@ extern "C"
 /*********************************************************************
  * CONSTANTS
  */
+
 // Service UUID
 #define IRTEMPERATURE_SERV_UUID         0xAA00
 #define IRTEMPERATURE_DATA_UUID         0xAA01
