@@ -29,57 +29,11 @@ int ac_relay=21;
 int fan_relay=20;
 
 
-
-void SetTemperature(uint8_t setTemperature)
-{
-    userSetTemp_global=setTemperature;
-    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
-}
-
-void ForceFan(uint8_t forceFan)
-{
-    action_request(heaterFunctionality_global,0,0,1,currentTemp_global,userSetTemp_global);
-}
-
-void ForceCool(uint8_t forceCool)
-{
-    action_request(heaterFunctionality_global,0,1,0,currentTemp_global,userSetTemp_global);
-}
-
-void ForceHeat(uint8_t forceHeat)
-{
-    action_request(heaterFunctionality_global,1,0,0,currentTemp_global,userSetTemp_global);
-}
-
-void UpdatePTAC(uint8_t actualTemperature)
-{
-    currentTemp_global=actualTemperature;
-    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
-}
-
-
-
 ////////////////////////
 ////////Functions///////
 ////////////////////////
 
 
-// Relay Status ////////////////////
-//receives relay name and requested action, if a 1 is received then the relay will turn on, zero will turn off
-//
-
-int relay_status_change(relay_name,requested_action)
-{
-    if(requested_action)
-    {
-        PIN_setOutputValue(relay_name, PIN_ID(relay_name), 1);
-    }
-    else
-    {
-        PIN_setOutputValue(relay_name, PIN_ID(relay_name), 0);
-    }
-    return 0;
-}
 
 
 // Temp Change //////////////////////
@@ -88,7 +42,7 @@ int relay_status_change(relay_name,requested_action)
 // 1 = heat on
 // 2 = AC and fan on
 
-int temp_change(current,requested)
+int temp_change(int current,int requested)
 {
 int change_required;
 
@@ -108,6 +62,24 @@ int change_required;
 return change_required;
 }
 
+// Relay Status ////////////////////
+//receives relay name and requested action, if a 1 is received then the relay will turn on, zero will turn off
+//
+
+void relay_status_change(int relay_name,int requested_action)
+{
+    static PIN_Handle relay_handle;
+    if(requested_action)
+    {
+        PIN_setOutputValue(relay_handle, PIN_ID(relay_name), 1);
+    }
+    else
+    {
+        PIN_setOutputValue(relay_handle, PIN_ID(relay_name), 0);
+    }
+z    return;
+}
+
 
 
 
@@ -122,10 +94,7 @@ return change_required;
 //////ac relay override
 //////fan relay override
 
-
-
-
-int action_request(heater_functionality_off,heat_relay_OR,ac_relay_OR,fan_relay_OR,temp_current,temp_set)
+void action_request(int heater_functionality_off,int heat_relay_OR, int ac_relay_OR,int fan_relay_OR,int temp_current,int temp_set)
 {
 
 //auto change temp
@@ -159,6 +128,41 @@ else
 
 return;
 }
+
+
+
+
+
+
+void SetTemperature(uint8_t setTemperature)
+{
+    userSetTemp_global=setTemperature;
+    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
+}
+
+void ForceFan(uint8_t forceFan)
+{
+    action_request(heaterFunctionality_global,0,0,1,currentTemp_global,userSetTemp_global);
+}
+
+void ForceCool(uint8_t forceCool)
+{
+    action_request(heaterFunctionality_global,0,1,0,currentTemp_global,userSetTemp_global);
+}
+
+void ForceHeat(uint8_t forceHeat)
+{
+    action_request(heaterFunctionality_global,1,0,0,currentTemp_global,userSetTemp_global);
+}
+
+void UpdatePTAC(uint8_t actualTemperature)
+{
+    currentTemp_global=actualTemperature;
+    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
+}
+
+
+
 
 
 
