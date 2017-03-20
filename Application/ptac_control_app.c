@@ -74,10 +74,13 @@
 
 #include <ti/mw/lcd/LCDDogm1286.h>
 
+
+#include <ti/drivers/PIN.h>
+#include <ti/drivers/pin/PINCC26xx.h>
 /*********************************************************************
 * CONSTANTS
 */
-#define PERIODIC_EVT_PERIOD               5000
+#define PERIODIC_EVT_PERIOD               500
 
 // Advertising interval when device is discoverable (units of 625us, 160=100ms)
 #define DEFAULT_ADVERTISING_INTERVAL          160
@@ -144,7 +147,7 @@
 #endif // Display_DISABLE_ALL
 
 // Task configuration
-#define MR_TASK_PRIORITY                     1
+#define MR_TASK_PRIORITY                     2
 #ifndef MR_TASK_STACK_SIZE
 #define MR_TASK_STACK_SIZE                   944
 #endif
@@ -576,6 +579,7 @@ static void multi_role_init(void)
 
     // Register and start Bond Manager
     VOID GAPBondMgr_Register(&multi_role_BondMgrCBs);
+    Util_startClock(&periodicClock);
   }
 
 
@@ -1602,8 +1606,13 @@ static void multi_role_processPasscode(gapPasskeyNeededEvent_t *pData)
  *
  * @return  None.
  */
+
+
+
+
 static void PTACControlApp_performPeriodicTask(void)
 {
+    /*
     // create read request...place in CSTACK
     attReadReq_t req;
 
@@ -1613,6 +1622,8 @@ static void PTACControlApp_performPeriodicTask(void)
     //send read request. no need to free if unsuccesful since the request
     //is only placed in CSTACK; not allocated
     GATT_ReadCharValue(thermometerDiscInfo.connectionHandle, &req, selfEntity);
+*/
+
 }
 
 
