@@ -1,33 +1,26 @@
 #include "ptac_control.h"
 #include <ti/drivers/PIN.h>
 #include <ti/drivers/pin/PINCC26xx.h>
+#include <../Application/ptac_control_app.h>
+#include "board.h"
 
-///// Pin Configurations/////
-/////////////////////////////
 
-//added this to the main.c file
-   /*
-    PIN_Config BoardGpioInitTable[] = {
-         // DIO22:  (initially off)
-         PIN_ID(22) | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-         // DIO21:  (initially off)
-         PIN_ID(21)  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-         // DIO20:
-         PIN_ID(20) | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,
-         // Terminate list
-         PIN_TERMINATE
-     };
-*/
+
+
+
+  //PIN_setOutputEnable(&hStateHui, Board_DIO12, 1);
 
 ///// Global variable initialize/////
 /////////////////////////
 int userSetTemp_global;
 int currentTemp_global;
 int heaterFunctionality_global;
-int heat_relay=22;
-int ac_relay=21;
-int fan_relay=20;
 
+int heat_relay=Board_DIO12;
+int ac_relay=Board_I2C0_SDA0;
+int fan_relay=Board_I2C0_SCL0;
+
+//PIN_State hstate_passed;
 
 ////////////////////////
 ////////Functions///////
@@ -68,16 +61,17 @@ return change_required;
 
 void relay_status_change(int relay_name,int requested_action)
 {
-    static PIN_Handle relay_handle;
+
+  //  PIN_State relay_handle =  hstate_passed;
     if(requested_action)
     {
-        PIN_setOutputValue(relay_handle, PIN_ID(relay_name), 1);
+        PIN_setOutputEnable(&hStateHui, relay_name, 1);
     }
     else
     {
-        PIN_setOutputValue(relay_handle, PIN_ID(relay_name), 0);
+        PIN_setOutputEnable(&hStateHui, relay_name, 0);
     }
-z    return;
+return;
 }
 
 
@@ -162,69 +156,12 @@ void UpdatePTAC(uint8_t actualTemperature)
 }
 
 
-
-
-
-
-/*
-
-int control()
+//pass hstate to ptac control
+/*void hstate_pass(PIN_State handle)
 {
-int heat_func  = 0;
-int heat_relay = 0;
-int ac_relay   = 0;
-int fan_relay  = 0;
-int i = 1;
-while(1)
-    {
-    if(i==1)
-    {
-        heat_func  = 1;
-        heat_relay= 1;
-        ac_relay    = 0;
-        fan_relay  = 0;
-    }
-    else if(i==2)
-    {
-        heat_func  = 0;
-        heat_relay = 1;
-        ac_relay   = 0;
-        fan_relay  = 0;
-    }
-    else if(i==3)
-    {
-        heat_func  = 0;
-        heat_relay = 0;
-        ac_relay   = 1;
-        fan_relay  = 0;
-    }
-    else if(i==4)
-    {
-        heat_func   = 0;
-        heat_relay  = 0;
-        ac_relay    = 1;
-        fan_relay   = 1;
-    }
-    else if(i==5)
-    {
-        heat_func  = 0;
-        heat_relay = 0;
-        ac_relay   = 0;
-        fan_relay  = 1;
-    }
-    else
-    {
-        heat_func  = 0;
-        heat_relay = 0;
-        ac_relay   = 0;
-        fan_relay  = 0;
-        i = 0;
-    }
-
-    action_request(heat_func,heat_relay,ac_relay,fan_relay);
-    delay(10000);
-    i=i+1;
-    }
-    return 0;
+     hstate_passed=handle;
+return;
 }
 */
+
+

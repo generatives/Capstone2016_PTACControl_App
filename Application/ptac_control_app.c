@@ -59,7 +59,7 @@
 #include "devinfoservice.h"
 #include "../PROFILES/PTAC_control_profile.h"
 #include "../PROFILES/thermometer_profile.h"
-#include "PTAC_control.h"
+#include "ptac_control.h"
 
 #include "multi.h"
 #include "gapbondmgr.h"
@@ -163,6 +163,13 @@
 #define MR_PERIODIC_EVT                      0x0040
 #define MR_LINK_ESTABLISHMENT_TIMEOUT        0x0080
 #define MR_LINK_ESTABLISHMENT_DELAY        0x0100
+
+//Relay pins
+#define HUI_LED_A     PIN_ID(31)
+#define HUI_LED_B     PIN_ID(9)
+#define HUI_LED_C     PIN_ID(10)
+
+
 
 // Discovery states
 typedef enum {
@@ -306,7 +313,7 @@ static uint16 maxPduSize;
 // Scanning state
 static bool scanningStarted = FALSE;
 
-static PIN_State hStateHui;
+PIN_State hStateHui;                    //removed static to make extern
 // Number of scan results and scan result index for menu functionality
 static uint8_t scanRes;
 
@@ -361,6 +368,7 @@ static void PTACControlApp_performPeriodicTask(void);
 static void PTACControl_initializeTemperatureSensor();
 static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value);
 static void discoverTICharacteristic(uint16 connHandle,uint16 uuid);
+
 
 /*********************************************************************
 * PROFILE CALLBACKS
@@ -444,9 +452,13 @@ static void multi_role_init(void)
   Util_constructClock(&linkEstablishmentDelay, eventGenerating_clockHandler,
                       LINK_ESTABLISHMENT_DELAY, 0, false, MR_LINK_ESTABLISHMENT_DELAY);
 
+
+
   // Define pins used by Human user interface and initial configuration
   const PIN_Config aPinListHui[] = {
-      Board_DIO12 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+      Board_DIO12     | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+      Board_I2C0_SDA0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+      Board_I2C0_SCL0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
       PIN_TERMINATE
   };
   // Get handle to this collection of pins
@@ -454,7 +466,6 @@ static void multi_role_init(void)
       PIN_setPortOutputEnable(&hStateHui, 1);
   }
 
-  PIN_setOutputEnable(&hStateHui, Board_DIO12, 1);
 
   //init keys and LCD
   //Board_initKeys(multi_role_keyChangeHandler);
@@ -727,7 +738,7 @@ static void multi_role_taskFxn(UArg a0, UArg a1)
       {
         events &= ~MR_PERIODIC_EVT;
 
-        Util_startClock(&periodicClock);
+        //Util_startClock(&periodicClock);
 
         // Perform periodic application task
         PTACControlApp_performPeriodicTask();
@@ -1726,9 +1737,7 @@ static void multi_role_processPasscode(gapPasskeyNeededEvent_t *pData)
 }
 
 
-#define HUI_LED_A     PIN_ID(31)
-#define HUI_LED_B     PIN_ID(9)
-#define HUI_LED_C     PIN_ID(10)
+
 
 /*********************************************************************
  * @fn      PTACControlApp_performPeriodicTask
@@ -1796,3 +1805,8 @@ static void WriteChar(uint16 connectionHandle, uint16 charHandle, uint8 value)
 
 /*********************************************************************
 *********************************************************************/
+
+
+
+
+
