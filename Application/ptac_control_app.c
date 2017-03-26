@@ -165,9 +165,9 @@
 #define MR_LINK_ESTABLISHMENT_DELAY        0x0100
 
 //Relay pins
-#define HUI_LED_A     PIN_ID(31)
-#define HUI_LED_B     PIN_ID(9)
-#define HUI_LED_C     PIN_ID(10)
+//#define HUI_LED_A     PIN_ID(31)
+//#define HUI_LED_B     PIN_ID(9)
+//#define HUI_LED_C     PIN_ID(10)
 
 
 
@@ -228,9 +228,7 @@ Display_Handle dispHandle = NULL;
 * LOCAL VARIABLES
 */
 
-/*********************************************************************
-* LOCAL VARIABLES
-*/
+
 
 static UART_Handle uartHandle = NULL;
 
@@ -456,7 +454,7 @@ static void multi_role_init(void)
 
   // Define pins used by Human user interface and initial configuration
   const PIN_Config aPinListHui[] = {
-      Board_DIO12     | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+      Board_DIO21     | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
       Board_I2C0_SDA0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
       Board_I2C0_SCL0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
       PIN_TERMINATE
@@ -1752,8 +1750,9 @@ static void multi_role_processPasscode(gapPasskeyNeededEvent_t *pData)
  */
 static void PTACControlApp_performPeriodicTask(void)
 {
+    SetTemperature(24);
     UpdatePTAC(24);
-
+    PIN_close(&hStateHui);
 //    // create read request...place in CSTACK
 //    attReadReq_t req;
 //
