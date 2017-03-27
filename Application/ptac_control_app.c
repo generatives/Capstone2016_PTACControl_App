@@ -736,10 +736,11 @@ static void multi_role_taskFxn(UArg a0, UArg a1)
       {
         events &= ~MR_PERIODIC_EVT;
 
-        //Util_startClock(&periodicClock);
-
         // Perform periodic application task
         PTACControlApp_performPeriodicTask();
+
+        Util_startClock(&periodicClock);
+
       }
 
       if (events & MR_LINK_ESTABLISHMENT_DELAY)
@@ -1750,9 +1751,7 @@ static void multi_role_processPasscode(gapPasskeyNeededEvent_t *pData)
  */
 static void PTACControlApp_performPeriodicTask(void)
 {
-    SetTemperature(24);
     UpdatePTAC(24);
-    PIN_close(&hStateHui);
 //    // create read request...place in CSTACK
 //    attReadReq_t req;
 //

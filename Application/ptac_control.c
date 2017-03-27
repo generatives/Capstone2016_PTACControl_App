@@ -84,14 +84,14 @@ int temp_change(int current,int requested)
 {
 int change_required;
 
-    if (requested > current)            //cool
-    {
-        change_required = 1;
-    }
-
-    else if(requested < current)        //heat
+    if (requested > current)            //heat
     {
         change_required = 2;
+    }
+
+    else if(requested < current)        //cool
+    {
+        change_required = 1;
     }
     else
     {
@@ -157,11 +157,18 @@ int action_change_temp=0;
 action_change_temp = temp_change(currentTemp_global,userSetTemp_global);                     //Receive current temp and requested temp compare value, return required action
 
 
+// Define pins used by Human user interface and initial configuration
+
+// Get handle to this collection of pins
+//if (!PIN_open(&hStateHui, aPinListHui)) {
+//    PIN_setPortOutputEnable(&hStateHui, 1);
+//}
+
 if(((heat_relay_OR)&(heater_functionality_off==0))||(action_change_temp==2))
     {
     PIN_setOutputValue(&hStateHui, Board_DIO21 , 1);
     PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 0);
+    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 1);
     }
 else if((ac_relay_OR)||(action_change_temp==1))
     {
@@ -181,6 +188,7 @@ else
     PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 0);
     PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 0);
     }
+//PIN_close(&hStateHui);
 
 return;
 }
@@ -216,7 +224,7 @@ void SetTemperature(uint8_t setTemperature)
 
 void ForceFan(uint8_t forceFan)
 {
-    action_request(heaterFunctionality_global,0,0,1,currentTemp_global,userSetTemp_global);
+    action_request(heaterFunctionality_global,0,0,forceFan,currentTemp_global,userSetTemp_global);
 }
 
 /*********************************************************************
@@ -231,7 +239,7 @@ void ForceFan(uint8_t forceFan)
 
 void ForceCool(uint8_t forceCool)
 {
-    action_request(heaterFunctionality_global,0,1,0,currentTemp_global,userSetTemp_global);
+    action_request(heaterFunctionality_global,0,forceCool,0,currentTemp_global,userSetTemp_global);
 }
 
 /*********************************************************************
@@ -246,7 +254,7 @@ void ForceCool(uint8_t forceCool)
 
 void ForceHeat(uint8_t forceHeat)
 {
-    action_request(heaterFunctionality_global,1,0,0,currentTemp_global,userSetTemp_global);
+    action_request(heaterFunctionality_global,forceHeat,0,0,currentTemp_global,userSetTemp_global);
 }
 
 
