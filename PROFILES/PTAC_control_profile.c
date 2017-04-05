@@ -97,18 +97,12 @@ CONST uint8 ptacControlForceFanUUID[ATT_BT_UUID_SIZE] =
 };
 
 // Characteristic 3 UUID: 0xFFF3
-CONST uint8 ptacControlForceHeatUUID[ATT_BT_UUID_SIZE] =
+CONST uint8 ptacControlForceModeUUID[ATT_BT_UUID_SIZE] =
 {
-  LO_UINT16(PTACCONTROL_FORCEHEAT_UUID), HI_UINT16(PTACCONTROL_FORCEHEAT_UUID)
+  LO_UINT16(PTACCONTROL_FORCEMODE_UUID), HI_UINT16(PTACCONTROL_FORCEMODE_UUID)
 };
 
 // Characteristic 4 UUID: 0xFFF4
-CONST uint8 ptacControlForceCoolUUID[ATT_BT_UUID_SIZE] =
-{
-  LO_UINT16(PTACCONTROL_FORCECOOL_UUID), HI_UINT16(PTACCONTROL_FORCECOOL_UUID)
-};
-
-// Characteristic 5 UUID: 0xFFF5
 CONST uint8 ptacControlActualTemperatureUUID[ATT_BT_UUID_SIZE] =
 {
   LO_UINT16(PTACCONTROL_ACTUALTEMPERATURE_UUID), HI_UINT16(PTACCONTROL_ACTUALTEMPERATURE_UUID)
@@ -157,32 +151,22 @@ static uint8 ptacControlForceFanUserDesp[9] = "Force Fan";
 
 
 // Simple Profile Characteristic 3 Properties
-static uint8 ptacControlForceHeatProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 ptacControlForceModeProps = GATT_PROP_READ | GATT_PROP_WRITE;
 
 // Characteristic 3 Value
-static uint8 ptacControlForceHeat = 0;
+static uint8 ptacControlForceMode = 0;
 
 // Simple Profile Characteristic 3 User Description
-static uint8 ptacControlForceHeatUserDesp[10] = "Force Heat";
+static uint8 ptacControlForceModeUserDesp[10] = "Force Mode";
 
 
 // Simple Profile Characteristic 4 Properties
-static uint8 ptacControlForceCoolProps = GATT_PROP_READ | GATT_PROP_WRITE;
-
-// Characteristic 4 Value
-static uint8 ptacControlForceCool = 0;
-
-// Simple Profile Characteristic 4 User Description
-static uint8 ptacControlForceCoolUserDesp[10] = "Force Cool";
-
-
-// Simple Profile Characteristic 5 Properties
 static uint8 ptacControlActualTemperatureProps = GATT_PROP_READ;
 
-// Characteristic 5 Value
+// Characteristic 4 Value
 static uint8 ptacControlActualTemperature = 0;
 
-// Simple Profile Characteristic 5 User Description
+// Simple Profile Characteristic 4 User Description
 static uint8 ptacControlActualTemperatureUserDesp[18] = "Actual Temperature";
 
 /*********************************************************************
@@ -252,15 +236,15 @@ static gattAttribute_t ptacControlAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
       { ATT_BT_UUID_SIZE, characterUUID },
       GATT_PERMIT_READ,
       0,
-      &ptacControlForceHeatProps
+      &ptacControlForceModeProps
     },
 
       // Characteristic Value 3
       {
-        { ATT_BT_UUID_SIZE, ptacControlForceHeatUUID },
+        { ATT_BT_UUID_SIZE, ptacControlForceModeUUID },
         GATT_PERMIT_READ | GATT_PERMIT_WRITE,
         0,
-        &ptacControlForceHeat
+        &ptacControlForceMode
       },
 
       // Characteristic 3 User Description
@@ -268,31 +252,7 @@ static gattAttribute_t ptacControlAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
         { ATT_BT_UUID_SIZE, charUserDescUUID },
         GATT_PERMIT_READ,
         0,
-        ptacControlForceHeatUserDesp
-      },
-
-    // Characteristic 4 Declaration
-    {
-      { ATT_BT_UUID_SIZE, characterUUID },
-      GATT_PERMIT_READ,
-      0,
-      &ptacControlForceCoolProps
-    },
-
-      // Characteristic Value 4
-      {
-        { ATT_BT_UUID_SIZE, ptacControlForceCoolUUID },
-        GATT_PERMIT_READ | GATT_PERMIT_WRITE,
-        0,
-        &ptacControlForceCool
-      },
-
-      // Characteristic 4 User Description
-      {
-        { ATT_BT_UUID_SIZE, charUserDescUUID },
-        GATT_PERMIT_READ,
-        0,
-        ptacControlForceCoolUserDesp
+        ptacControlForceModeUserDesp
       },
 
     // Characteristic 5 Declaration
@@ -452,21 +412,10 @@ bStatus_t PtacControl_SetParameter( uint8 param, uint8 len, void *value )
       }
       break;
 
-    case PTACCONTROL_FORCEHEAT:
+    case PTACCONTROL_FORCEMODE:
       if ( len == sizeof ( uint8 ) )
       {
-        ptacControlForceHeat = *((uint8*)value);
-      }
-      else
-      {
-        ret = bleInvalidRange;
-      }
-      break;
-
-    case PTACCONTROL_FORCECOOL:
-      if ( len == sizeof ( uint8 ) )
-      {
-        ptacControlForceCool = *((uint8*)value);
+        ptacControlForceMode = *((uint8*)value);
       }
       else
       {
@@ -519,12 +468,8 @@ bStatus_t PtacControl_GetParameter( uint8 param, void *value )
       *((uint8*)value) = ptacControlForceFan;
       break;
 
-    case PTACCONTROL_FORCEHEAT:
-      *((uint8*)value) = ptacControlForceHeat;
-      break;
-
-    case PTACCONTROL_FORCECOOL:
-      *((uint8*)value) = ptacControlForceCool;
+    case PTACCONTROL_FORCEMODE:
+      *((uint8*)value) = ptacControlForceMode;
       break;
 
     case PTACCONTROL_ACTUALTEMPERATURE:
@@ -580,8 +525,7 @@ static bStatus_t ptacControl_ReadAttrCB(uint16_t connHandle,
       // all characteristics have read permissions
       case PTACCONTROL_SETTEMPERATURE_UUID:
       case PTACCONTROL_FORCEFAN_UUID:
-      case PTACCONTROL_FORCEHEAT_UUID:
-      case PTACCONTROL_FORCECOOL_UUID:
+      case PTACCONTROL_FORCEMODE_UUID:
       case PTACCONTROL_ACTUALTEMPERATURE_UUID:
         *pLen = 1;
         pValue[0] = *pAttr->pValue;
@@ -634,8 +578,7 @@ static bStatus_t ptacControl_WriteAttrCB(uint16_t connHandle,
     {
         case PTACCONTROL_SETTEMPERATURE_UUID:
         case PTACCONTROL_FORCEFAN_UUID:
-        case PTACCONTROL_FORCEHEAT_UUID:
-        case PTACCONTROL_FORCECOOL_UUID:
+        case PTACCONTROL_FORCEMODE_UUID:
 
         //Validate the value
         // Make sure it's not a blob oper
@@ -665,13 +608,9 @@ static bStatus_t ptacControl_WriteAttrCB(uint16_t connHandle,
           {
             notifyApp = PTACCONTROL_FORCEFAN;
           }
-          else if(pAttr->pValue == &ptacControlForceHeat)
+          else if(pAttr->pValue == &ptacControlForceMode)
           {
-            notifyApp = PTACCONTROL_FORCEHEAT;
-          }
-          else
-          {
-            notifyApp = PTACCONTROL_FORCECOOL;
+            notifyApp = PTACCONTROL_FORCEMODE;
           }
         }
 

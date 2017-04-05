@@ -64,9 +64,8 @@ extern "C"
 // Profile Parameters
 #define PTACCONTROL_SETTEMPERATURE             0  // RW uint8 - Profile Characteristic 1 value
 #define PTACCONTROL_FORCEFAN                   1  // RW uint8 - Profile Characteristic 2 value
-#define PTACCONTROL_FORCEHEAT                  2  // RW uint8 - Profile Characteristic 3 value
-#define PTACCONTROL_FORCECOOL                  3  // RW uint8 - Profile Characteristic 4 value
-#define PTACCONTROL_ACTUALTEMPERATURE          4  // RW uint8 - Profile Characteristic 4 value
+#define PTACCONTROL_FORCEMODE                  2  // RW uint8 - Profile Characteristic 3 value
+#define PTACCONTROL_ACTUALTEMPERATURE          3  // RW uint8 - Profile Characteristic 4 value
 
 // Simple Profile Service UUID
 #define PTACCONTROL_SERV_UUID                  0xFFF0
@@ -74,9 +73,8 @@ extern "C"
 // Parameter UUID
 #define PTACCONTROL_SETTEMPERATURE_UUID        0xFFF1
 #define PTACCONTROL_FORCEFAN_UUID              0xFFF2
-#define PTACCONTROL_FORCEHEAT_UUID             0xFFF3
-#define PTACCONTROL_FORCECOOL_UUID             0xFFF4
-#define PTACCONTROL_ACTUALTEMPERATURE_UUID     0xFFF5
+#define PTACCONTROL_FORCEMODE_UUID             0xFFF3
+#define PTACCONTROL_ACTUALTEMPERATURE_UUID     0xFFF4
 
 // Simple Keys Profile Services bit fields
 #define PTACCONTROL_SERVICE               0x00000001

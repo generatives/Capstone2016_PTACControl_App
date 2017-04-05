@@ -591,19 +591,16 @@ static void multi_role_init(void)
       uint8_t charValue1 = 0;
       uint8_t charValue2 = 0;
       uint8_t charValue3 = 0;
-      uint8_t charValue4 = 0;
-      uint8_t charValue5 = 25;
+      uint8_t charValue4 = 25;
 
       PtacControl_SetParameter(PTACCONTROL_SETTEMPERATURE, sizeof(uint8_t),
                                  &charValue1);
       PtacControl_SetParameter(PTACCONTROL_FORCEFAN, sizeof(uint8_t),
                                  &charValue2);
-      PtacControl_SetParameter(PTACCONTROL_FORCEHEAT, sizeof(uint8_t),
+      PtacControl_SetParameter(PTACCONTROL_FORCEMODE, sizeof(uint8_t),
                                  &charValue3);
-      PtacControl_SetParameter(PTACCONTROL_FORCECOOL, sizeof(uint8_t),
-                                 &charValue4);
       PtacControl_SetParameter(PTACCONTROL_ACTUALTEMPERATURE, sizeof(uint8_t),
-                                 &charValue5);
+                                 &charValue4);
     }
 
     // Register callback with SimpleGATTprofile
@@ -1268,18 +1265,10 @@ static void multi_role_processCharValueChangeEvt(uint8_t paramID)
 
     break;
 
-  case PTACCONTROL_FORCEHEAT:
+  case PTACCONTROL_FORCEMODE:
     // get new value
-    PtacControl_GetParameter(PTACCONTROL_FORCEHEAT, &newValue);
-    ForceHeat(newValue);
-
-
-    break;
-
-  case PTACCONTROL_FORCECOOL:
-    // get new value
-      PtacControl_GetParameter(PTACCONTROL_FORCECOOL, &newValue);
-      ForceCool(newValue);
+    PtacControl_GetParameter(PTACCONTROL_FORCEMODE, &newValue);
+    ForceMode(newValue);
 
 
     break;
