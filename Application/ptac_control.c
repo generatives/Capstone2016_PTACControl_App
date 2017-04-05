@@ -10,6 +10,10 @@
 #include <../Application/ptac_control_app.h>
 #include "board.h"
 
+#define HEAT_PIN Board_I2C0_SDA0
+#define COOL_PIN Board_I2C0_SCL0
+#define FAN_PIN Board_DIO21
+
 /*********************************************************************
 * CONSTANTS
 */
@@ -30,6 +34,9 @@
 int userSetTemp_global;
 int currentTemp_global;
 int heaterFunctionality_global;
+int forceHeatOR;
+int forceCoolOR;
+int forceFanOR;
 
 #define heat_relay  Board_DIO12
 #define ac_relay    Board_I2C0_SDA0
@@ -164,29 +171,29 @@ action_change_temp = temp_change(currentTemp_global,userSetTemp_global);        
 //    PIN_setPortOutputEnable(&hStateHui, 1);
 //}
 
-if(((heat_relay_OR)&(heater_functionality_off==0))||(action_change_temp==2))
+    if(!ac_relay_OR && action_change_temp==2)
     {
-    PIN_setOutputValue(&hStateHui, Board_DIO21 , 1);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 1);
+        PIN_setOutputValue(&hStateHui, HEAT_PIN , 1);
+        PIN_setOutputValue(&hStateHui, COOL_PIN , 0);
+        PIN_setOutputValue(&hStateHui, FAN_PIN , 1);
     }
-else if((ac_relay_OR)||(action_change_temp==1))
+    else if(!heat_relay_OR && (action_change_temp==1))
     {
-    PIN_setOutputValue(&hStateHui, Board_DIO21 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 1);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 1);
+        PIN_setOutputValue(&hStateHui, HEAT_PIN , 0);
+        PIN_setOutputValue(&hStateHui, COOL_PIN , 1);
+        PIN_setOutputValue(&hStateHui, FAN_PIN , 1);
     }
-else if (fan_relay_OR)
+    else if (fan_relay_OR)
     {
-    PIN_setOutputValue(&hStateHui, Board_DIO21 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 1);
+        PIN_setOutputValue(&hStateHui, HEAT_PIN , 0);
+        PIN_setOutputValue(&hStateHui, COOL_PIN , 0);
+        PIN_setOutputValue(&hStateHui, FAN_PIN , 1);
     }
-else
+    else
     {
-    PIN_setOutputValue(&hStateHui, Board_DIO21 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SDA0 , 0);
-    PIN_setOutputValue(&hStateHui, Board_I2C0_SCL0 , 0);
+        PIN_setOutputValue(&hStateHui, HEAT_PIN , 0);
+        PIN_setOutputValue(&hStateHui, COOL_PIN , 0);
+        PIN_setOutputValue(&hStateHui, FAN_PIN , 0);
     }
 //PIN_close(&hStateHui);
 
@@ -209,7 +216,7 @@ return;
 void SetTemperature(uint8_t setTemperature)
 {
     userSetTemp_global=setTemperature;
-    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
+    action_request(heaterFunctionality_global,forceHeatOR,forceCoolOR,forceFanOR,currentTemp_global,userSetTemp_global);
 }
 
 /*********************************************************************
@@ -224,7 +231,8 @@ void SetTemperature(uint8_t setTemperature)
 
 void ForceFan(uint8_t forceFan)
 {
-    action_request(heaterFunctionality_global,0,0,forceFan,currentTemp_global,userSetTemp_global);
+    forceFanOR = forceFan;
+    action_request(heaterFunctionality_global,forceHeatOR,forceCoolOR,forceFanOR,currentTemp_global,userSetTemp_global);
 }
 
 /*********************************************************************
@@ -239,7 +247,8 @@ void ForceFan(uint8_t forceFan)
 
 void ForceCool(uint8_t forceCool)
 {
-    action_request(heaterFunctionality_global,0,forceCool,0,currentTemp_global,userSetTemp_global);
+    forceCoolOR = forceCool;
+    action_request(heaterFunctionality_global,forceHeatOR,forceCoolOR,forceFanOR,currentTemp_global,userSetTemp_global);
 }
 
 /*********************************************************************
@@ -254,7 +263,8 @@ void ForceCool(uint8_t forceCool)
 
 void ForceHeat(uint8_t forceHeat)
 {
-    action_request(heaterFunctionality_global,forceHeat,0,0,currentTemp_global,userSetTemp_global);
+    forceHeatOR = forceHeat;
+    action_request(heaterFunctionality_global,forceHeatOR,forceCoolOR,forceFanOR,currentTemp_global,userSetTemp_global);
 }
 
 
@@ -271,7 +281,7 @@ void ForceHeat(uint8_t forceHeat)
 void UpdatePTAC(uint8_t actualTemperature)
 {
     currentTemp_global=actualTemperature;
-    action_request(heaterFunctionality_global,0,0,0,currentTemp_global,userSetTemp_global);
+    action_request(heaterFunctionality_global,forceHeatOR,forceCoolOR,forceFanOR,currentTemp_global,userSetTemp_global);
 }
 
 

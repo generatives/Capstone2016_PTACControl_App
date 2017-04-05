@@ -69,7 +69,7 @@ extern "C"
 #define PTACCONTROL_ACTUALTEMPERATURE          4  // RW uint8 - Profile Characteristic 4 value
 
 // Simple Profile Service UUID
-#define PTACCONTROL_SERV_UUID                  0xFFF1
+#define PTACCONTROL_SERV_UUID                  0xFFF0
 
 // Parameter UUID
 #define PTACCONTROL_SETTEMPERATURE_UUID        0xFFF1
